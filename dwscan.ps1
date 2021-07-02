@@ -81,8 +81,8 @@ foreach($line in Get-Content $host_list_path){
         Add-Content $out_file "`tпроверка начата в $pstart"
         New-Item -ItemType directory -Path \\$pc_name\c$\Distr -Force | Out-Null
         New-Item -ItemType directory -Path \\$pc_name\c$\Distr\DoctorWebScanResults -Force | Out-Null
-        Start-Process $ps_path "\\$pc_name cmd /C `"ping \\ppp-ms165-usc -t`"" -WindowStyle Hidden 
-        #Start-Process "$ps_path" "\\$pc_name cmd /C `"`"%programfiles%\drweb\dwscanner.exe`" /QUIT /FULL /AA /RA:`"C:\distr\DoctorWebScanResults\$date.log`" `"" -WindowStyle Hidden
+        #Start-Process $ps_path "\\$pc_name cmd /C `"ping \\ppp-ms165-usc -t`"" -WindowStyle Hidden 
+        Start-Process "$ps_path" "\\$pc_name cmd /C `"`"%programfiles%\drweb\dwscanner.exe`" /QUIT /FULL /AA /RA:`"C:\distr\DoctorWebScanResults\$date.log`" `"" -WindowStyle Hidden
     } else {
         Add-Content $out_file "$pc_name`tНЕ ДОСТУПЕН"
     }
