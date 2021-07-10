@@ -1,24 +1,34 @@
-﻿$location = Get-Location
+$location = Get-Location
 
 Add-Type -AssemblyName System.Windows.Forms
 $FileBrowser = New-Object System.Windows.Forms.OpenFileDialog
 $FileBrowser.Title = "Открыть txt файл со списком хостов для проверки"
 $FileBrowser.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*"
+$FileBrowser.InitialDirectory = $location
 $null = $FileBrowser.ShowDialog()
 $host_list_path = $FileBrowser.FileName.Clone()
 
 $PsBrowser = New-Object System.Windows.Forms.OpenFileDialog
 $PsBrowser.Title = "Открыть psexec.exe"
 $PsBrowser.Filter = "Исполняемые файлы (*.exe)|*.exe|Все файлы (*.*)|(*.*)"
+$PsBrowser.InitialDirectory = $location
 $null = $PsBrowser.ShowDialog()
 $ps_path = $PsBrowser.FileName
 
+$LogSaveBrowser = New-Object System.Windows.Forms.SaveFileDialog
+$LogSaveBrowser.Title = "Сохранить лог"
+$LogSaveBrowser.Filter = "Текстовые файлы (*.txt)|*.txt|Все файлы (*.*)|*.*"
+$LogSaveBrowser.InitialDirectory = $location
+$null = $LogSaveBrowser.ShowDialog()
+$log_file_local = $LogSaveBrowser.FileName
+
 $date = Get-Date -Format "dd-MM-yyyy"
-$date_time = Get-Date -Format "HH-mm-ss dd-MM-yyyy"
+#$date_time = Get-Date -Format "HH-mm-ss dd-MM-yyyy"
 
 $pc_avail = [System.Collections.Generic.List[string]]::new()
-New-Item -Path $location -Name "$date_time.txt" | Out-Null
-$out_file = "$location\$date_time.txt"
+New-Item $log_file_local -Force | Out-Null
+#New-Item -Path $location -Name "$log_file_local" | Out-Null
+$out_file = "$log_file_local"
 
 if($host_list_path.Length -eq 0){
     Write-Host "Пустой файл списка хостов"
@@ -55,14 +65,21 @@ function test_psexec_connect($val){
     }   
 }
 
-
 foreach($line in Get-Content $host_list_path){
     
     $pc_name = $line.Trim()
-    if((Test-NetConnection $pc_name) -and (Test-Path \\$pc_name\c$)){
+    if(Test-NetConnection $pc_name){
+        
         $pc_avail.Add($pc_name)
-        Add-Content $out_file "$pc_name`tДОСТУПЕН"  -NoNewline
+        Add-Content $out_file "$pc_name`tIP ДОСТУПЕН"  -NoNewline
         $pstart = Get-Date -Format "HH-mm dd-MM-yyyy"
+
+        if(-not (Test-Path \\$pc_name\c$)){
+            Add-Content $out_file "`tПУТЬ НЕ ДОСТУПЕН"
+            continue
+        } else {
+            Add-Content $out_file "$pc_name`tПУТЬ ДОСТУПЕН" -NoNewline
+        }
         
         if(-Not (test_psexec_connect($pc_name))){
             Add-Content $out_file "`tpsexec`tНЕ ДОСТУПЕН"
@@ -82,14 +99,15 @@ foreach($line in Get-Content $host_list_path){
         New-Item -ItemType directory -Path \\$pc_name\c$\Distr -Force | Out-Null
         New-Item -ItemType directory -Path \\$pc_name\c$\Distr\DoctorWebScanResults -Force | Out-Null
         #Start-Process $ps_path "\\$pc_name cmd /C `"ping \\ppp-ms165-usc -t`"" -WindowStyle Hidden 
-        Start-Process "$ps_path" "\\$pc_name cmd /C `"`"%programfiles%\drweb\dwscanner.exe`" /QUIT /FULL /AA /RA:`"C:\distr\DoctorWebScanResults\$date.log`" `"" -WindowStyle Hidden
+        Start-Process "$ps_path" "\\$pc_name cmd /C `"`"%programfiles%\drweb\dwscanner.exe`" /QUIT /FULL /AA /RA:`"C:\distr\DoctorWebScanResults\$date.log`" `"" -WindowStyle Hidden    
     } else {
-        Add-Content $out_file "$pc_name`tНЕ ДОСТУПЕН"
+        Add-Content $out_file "$pc_name`tIP НЕ ДОСТУПЕН"
     }
 
 }
 
-$process = "psexec.exe"
+
+#$process = "psexec.exe"
 
 <#while(1){
     Write-Host "Узнать состояние проверки"
